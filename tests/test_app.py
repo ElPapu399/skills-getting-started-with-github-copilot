@@ -20,15 +20,25 @@ def client():
 
 
 def test_root_redirects_to_static_index(client):
+    # Arrange
+    # (client fixture provides the test client)
+
+    # Act
     response = client.get("/", follow_redirects=False)
 
+    # Assert
     assert response.status_code == 307
     assert response.headers["location"] == "/static/index.html"
 
 
 def test_get_activities_returns_activity_list(client):
+    # Arrange
+    # (activities fixture provides initial data)
+
+    # Act
     response = client.get("/activities")
 
+    # Assert
     assert response.status_code == 200
     data = response.json()
     assert isinstance(data, dict)
@@ -37,40 +47,67 @@ def test_get_activities_returns_activity_list(client):
 
 
 def test_signup_for_activity_succeeds(client):
-    email = "newstudent@mergington.edu"
-    response = client.post("/activities/Chess Club/signup", params={"email": email})
+    # Arrange
+    new_email = "newstudent@mergington.edu"
+    activity_name = "Chess Club"
 
+    # Act
+    response = client.post(f"/activities/{activity_name}/signup", params={"email": new_email})
+
+    # Assert
     assert response.status_code == 200
-    assert response.json() == {"message": f"Signed up {email} for Chess Club"}
-    assert email in activities["Chess Club"]["participants"]
+    assert response.json() == {"message": f"Signed up {new_email} for {activity_name}"}
+    assert new_email in activities[activity_name]["participants"]
 
 
 def test_signup_for_activity_duplicate_returns_400(client):
+    # Arrange
     existing_email = "michael@mergington.edu"
-    response = client.post("/activities/Chess Club/signup", params={"email": existing_email})
+    activity_name = "Chess Club"
 
+    # Act
+    response = client.post(f"/activities/{activity_name}/signup", params={"email": existing_email})
+
+    # Assert
     assert response.status_code == 400
     assert response.json()["detail"] == "Student is already signed up for this activity"
 
 
 def test_signup_for_unknown_activity_returns_404(client):
-    response = client.post("/activities/Nonexistent/signup", params={"email": "someone@mergington.edu"})
+    # Arrange
+    nonexistent_activity = "Nonexistent"
+    test_email = "someone@mergington.edu"
 
+    # Act
+    response = client.post(f"/activities/{nonexistent_activity}/signup", params={"email": test_email})
+
+    # Assert
     assert response.status_code == 404
     assert response.json()["detail"] == "Activity not found"
 
 
 def test_unregister_from_activity_succeeds(client):
-    email = "michael@mergington.edu"
-    response = client.delete("/activities/Chess Club/unregister", params={"email": email})
+    # Arrange
+    existing_participant = "michael@mergington.edu"
+    activity_name = "Chess Club"
 
+    # Act
+    response = client.delete(f"/activities/{activity_name}/unregister", params={"email": existing_participant})
+
+    # Assert
     assert response.status_code == 200
-    assert response.json() == {"message": f"Unregistered {email} from Chess Club"}
-    assert email not in activities["Chess Club"]["participants"]
+    assert response.json() == {"message": f"Unregistered {existing_participant} from {activity_name}"}
+    assert existing_participant not in activities[activity_name]["participants"]
 
 
 def test_unregister_non_participant_returns_404(client):
-    response = client.delete("/activities/Chess Club/unregister", params={"email": "nobody@mergington.edu"})
+    # Arrange
+    non_participant_email = "nobody@mergington.edu"
+    activity_name = "Chess Club"
 
+    # Act
+    response = client.delete(f"/activities/{activity_name}/unregister", params={"email": non_participant_email})
+
+    # Assert
     assert response.status_code == 404
     assert response.json()["detail"] == "Participant not found in this activity"
